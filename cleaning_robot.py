@@ -5,7 +5,8 @@ DIVISIÓN DE ESTUDIOS DE POSGRADO E INVESTIGACIÓN
 MAESTRÍA EN INTELIGENCIA ARTIFICIAL
 
 Materia: Inteligencia Artificial y su Ética
-Actividad 26: Robótica - Robot Limpiador Autónomo con Boustrophedon y Retorno A*
+Actividad 26: Proyecto "Diseña tu Primer Robot Virtual"
+Contexto: Startup de robótica de servicio doméstico.
 Alumno: Juan Pablo Figueroa Moran (Matrícula: M26040059)
 =============================================================================
 """
@@ -13,7 +14,7 @@ Alumno: Juan Pablo Figueroa Moran (Matrícula: M26040059)
 import sys
 import heapq
 import time
-from typing import List, Tuple, Optional, Set
+from typing import List, Tuple, Set, Optional
 
 if sys.platform == "win32":
     try:
@@ -21,187 +22,196 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-# Constantes del Entorno
-BASE = (0, 0)
-CELDA_LIMPIA = 0
-CELDA_SUCIA = 1
-CELDA_OBSTACULO = 2
+
+# =============================================================================
+# CLASE BASE DE ROBOT AUTÓNOMO
+# =============================================================================
+
+class RobotAutonomo:
+    """Clase base de plataforma robótica móvil con sensores de navegación."""
+    def __init__(self, nombre: str):
+        self.nombre = nombre
+        self.posicion = (0, 0)
+        self.obstaculos = set()
+
+    def navegar_a_destino(self, x: int, y: int) -> bool:
+        """Verifica si la celda es transitable (no es obstáculo)."""
+        if (x, y) in self.obstaculos:
+            return False
+        self.posicion = (x, y)
+        return True
 
 
-def distancia_manhattan(p1: Tuple[int, int], p2: Tuple[int, int]) -> int:
-    return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+# =============================================================================
+# ALGORITMO A* PARA NAVEGACIÓN Y RETORNO ÓPTIMO A BASE
+# =============================================================================
 
+def planificar_retorno_a_estrella(inicio: Tuple[int, int], meta: Tuple[int, int],
+                                  obstaculos: Set[Tuple[int, int]],
+                                  ancho: int, alto: int) -> List[Tuple[int, int]]:
+    """Encuentra la ruta mínima libre de obstáculos usando A*."""
+    def h(p):
+        return abs(p[0] - meta[0]) + abs(p[1] - meta[1])
 
-def planificar_retorno_a_estrella(cuadricula: List[List[int]], inicio: Tuple[int, int], meta: Tuple[int, int]) -> List[Tuple[int, int]]:
-    """
-    Algoritmo de búsqueda A* para encontrar la ruta más corta libre de obstáculos
-    desde la posición actual hacia la estación base de recarga.
-    """
-    filas = len(cuadricula)
-    columnas = len(cuadricula[0])
-
-    # Priority queue: (f_score, g_score, (r, c), path)
     open_set = []
-    heapq.heappush(open_set, (distancia_manhattan(inicio, meta), 0, inicio, [inicio]))
+    heapq.heappush(open_set, (h(inicio), 0, inicio, [inicio]))
     visitados = set()
 
     while open_set:
         f, g, actual, camino = heapq.heappop(open_set)
-
         if actual == meta:
             return camino
-
         if actual in visitados:
             continue
         visitados.add(actual)
 
-        r, c = actual
-        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            nr, nc = r + dr, c + dc
-            if 0 <= nr < filas and 0 <= nc < columnas:
-                if cuadricula[nr][nc] != CELDA_OBSTACULO and (nr, nc) not in visitados:
-                    nuevo_g = g + 1
-                    nuevo_f = nuevo_g + distancia_manhattan((nr, nc), meta)
-                    heapq.heappush(open_set, (nuevo_f, nuevo_g, (nr, nc), camino + [(nr, nc)]))
+        x, y = actual
+        for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < ancho and 0 <= ny < alto:
+                if (nx, ny) not in obstaculos and (nx, ny) not in visitados:
+                    heapq.heappush(open_set, (g + 1 + h((nx, ny)), g + 1, (nx, ny), camino + [(nx, ny)]))
 
-    return [] # Sin ruta viable
+    return []
 
 
-class RobotLimpiador:
-    """
-    Agente robótico autónomo para cobertura de área:
-    - Movimiento en patrón de serpiente/escorpión (Boustrophedon)
-    - Sensores de detección de proximidad para evasión de obstáculos
-    - Monitoreo de batería con retorno seguro A* al caer por debajo del 20%
-    """
-    def __init__(self, filas: int = 8, columnas: int = 8, bateria_inicial: float = 100.0):
-        self.filas = filas
-        self.columnas = columnas
-        self.posicion = (0, 0)
-        self.bateria = bateria_inicial
-        self.cuadricula = [[CELDA_SUCIA for _ in range(columnas)] for _ in range(filas)]
-        self.celdas_limpiadas = 0
-        self.pasos_totales = 0
-        self.ciclos_recarga = 0
+# =============================================================================
+# PLANTILLA REQUERIDA DEL ENUNCIADO: ROBOT LIMPIADOR AUTÓNOMO
+# =============================================================================
 
-    def sembrar_obstaculos(self, lista_obstaculos: List[Tuple[int, int]]):
-        for r, c in lista_obstaculos:
-            if (r, c) != BASE and 0 <= r < self.filas and 0 <= c < self.columnas:
-                self.cuadricula[r][c] = CELDA_OBSTACULO
+def proyecto_robot_limpiador():
+    """Plantilla requerida para el proyecto del robot limpiador."""
+    print("=" * 80)
+    print(" Proyecto: Robot Limpiador Autónomo")
+    print("=" * 80)
 
-    def ejecutar_ciclo_limpieza(self):
-        print(f"[*] Iniciando misión en entorno {self.filas}x{self.columnas}. Batería inicial: {self.bateria}%\n")
-        self._limpiar_celda_actual()
+    class RobotLimpiador(RobotAutonomo):
+        def __init__(self, nombre: str, ancho: int = 7, alto: int = 7):
+            super().__init__(nombre)
+            self.ancho = ancho
+            self.alto = alto
+            self.areas_limpias = set()
+            self.bateria = 100
+            self.capacidad_basura = 100
+            self.base = (0, 0)
+            self.ciclos_recarga = 0
+            self.pasos_totales = 0
 
-        # Cobertura en serpiente (Boustrophedon): fila por fila alternando dirección
-        for r in range(self.filas):
-            rango_c = range(self.columnas) if r % 2 == 0 else range(self.columnas - 1, -1, -1)
-            for c in rango_c:
-                meta_celda = (r, c)
-                if self.posicion == meta_celda:
-                    continue
+            # Obstáculos domésticos (muebles, paredes intermedias)
+            self.obstaculos = {(2, 1), (2, 2), (2, 3), (4, 5), (5, 5)}
 
-                # Si es un obstáculo conocido, omitir
-                if self.cuadricula[r][c] == CELDA_OBSTACULO:
-                    continue
+        def limpiar_area(self, x: int, y: int) -> bool:
+            """Simula limpiar un área específica."""
+            if (x, y) in self.areas_limpias:
+                return False
 
-                # Desplazarse hacia la siguiente celda del patrón
-                self._mover_hacia(meta_celda)
-                self._limpiar_celda_actual()
+            if self.bateria <= 0:
+                print(" Batería agotada, no se puede limpiar")
+                return False
 
-                # Chequeo crítico de batería (< 20%)
-                if self.bateria < 20.0:
-                    print(f"\n[⚠️ ALERTA CRÍTICA] Batería al {self.bateria:.1f}% (< 20%). Interrumpiendo misión.")
-                    self.retornar_a_base_y_recargar()
+            self.bateria -= 1
+            self.capacidad_basura -= 1
+            self.areas_limpias.add((x, y))
+            return True
 
-        print("\n" + "=" * 70)
-        print("  REPORTE FINAL DE LA MISIÓN DEL ROBOT LIMPIADOR")
-        print("=" * 70)
-        total_limpiables = sum(row.count(CELDA_LIMPIA) for row in self.cuadricula) + sum(row.count(CELDA_SUCIA) for row in self.cuadricula)
-        print(f"  * Celdas limpiadas: {self.celdas_limpiadas}")
-        print(f"  * Pasos totales realizados: {self.pasos_totales}")
-        print(f"  * Ciclos de recarga en base: {self.ciclos_recarga}")
-        print(f"  * Nivel final de batería: {self.bateria:.1f}%")
-        self.renderizar_mapa()
+        def recargar_en_base(self):
+            """Simula el retorno guiado por A*, recarga de batería y vaciado de depósito."""
+            ruta_retorno = planificar_retorno_a_estrella(self.posicion, self.base, self.obstaculos, self.ancho, self.alto)
+            print(f"[*] Planificando ruta de evacuación hacia la base {self.base} con A*...")
+            print(f"    Ruta encontrada ({len(ruta_retorno)} pasos): {ruta_retorno}")
+            self.posicion = self.base
+            self.ciclos_recarga += 1
+            self.bateria = 100
+            self.capacidad_basura = 100
+            print(f"[+] Robot seguro en Base {self.base}. Depósito vaciado y batería recargada al 100%.\n")
 
-    def _mover_hacia(self, objetivo: Tuple[int, int]):
-        """Intenta avanzar un paso hacia el objetivo evadiendo obstáculos locales."""
-        camino = planificar_retorno_a_estrella(self.cuadricula, self.posicion, objetivo)
-        if len(camino) > 1:
-            for siguiente_paso in camino[1:]:
-                self.posicion = siguiente_paso
-                self.pasos_totales += 1
-                self.bateria -= 0.8  # Consumo por desplazamiento
-                if self.bateria < 20.0:
-                    break
+        def planificar_ruta_limpieza(self, ancho: int, alto: int):
+            """Planifica una ruta sistemática Boustrophedon optimizada con retorno A*."""
+            print(f"\n Planificando ruta de limpieza para área {ancho}x{alto}")
+            areas_por_limpiar = ancho * alto - len(self.obstaculos)
+            areas_limpiadas = 0
 
-    def _limpiar_celda_actual(self):
-        r, c = self.posicion
-        if self.cuadricula[r][c] == CELDA_SUCIA:
-            self.cuadricula[r][c] = CELDA_LIMPIA
-            self.celdas_limpiadas += 1
-            self.bateria -= 1.0  # Consumo extra por succión/cepillado
+            # Barrido en serpiente (Boustrophedon)
+            for y in range(alto):
+                rango_x = range(ancho) if y % 2 == 0 else range(ancho - 1, -1, -1)
+                for x in rango_x:
+                    if (x, y) in self.obstaculos:
+                        continue
 
-    def retornar_a_base_y_recargar(self):
-        print(f"[*] Planificando ruta de evacuación hacia la base {BASE} con A*...")
-        camino_retorno = planificar_retorno_a_estrella(self.cuadricula, self.posicion, BASE)
-        print(f"    Ruta encontrada ({len(camino_retorno)} pasos): {camino_retorno}")
+                    if self.navegar_a_destino(x, y):
+                        self.pasos_totales += 1
+                        if self.limpiar_area(x, y):
+                            areas_limpiadas += 1
 
-        for paso in camino_retorno[1:]:
-            self.posicion = paso
-            self.pasos_totales += 1
-            self.bateria -= 0.5 # Consumo eficiente en modo retorno
+                    # Monitoreo de seguridad energética
+                    if self.bateria <= 20:
+                        print(f"\n[⚠️ ALERTA CRÍTICA] Batería al {self.bateria}% (<= 20%). Interrumpiendo misión.")
+                        self.recargar_en_base()
 
-        print(f"[+] Robot seguro en Base {BASE}. Batería restante al llegar: {self.bateria:.1f}%")
-        print("[*] Recargando baterías en la estación al 100%...")
-        self.bateria = 100.0
-        self.ciclos_recarga += 1
-        print("[+] Recarga completada. Reanudando cobertura del mapa.\n")
+            return areas_limpiadas
 
-    def renderizar_mapa(self):
-        print("\n--- Visualización de la Cuadrícula ---")
-        simbolos = {CELDA_LIMPIA: ".", CELDA_SUCIA: "S", CELDA_OBSTACULO: "#"}
-        for r in range(self.filas):
-            fila_str = []
-            for c in range(self.columnas):
-                if (r, c) == BASE:
-                    fila_str.append("B")
-                elif (r, c) == self.posicion:
-                    fila_str.append("R")
-                else:
-                    fila_str.append(simbolos[self.cuadricula[r][c]])
-            print("  " + " ".join(fila_str))
-        print("  Leyenda: B=Base, R=Robot, .=Limpia, S=Sucia, #=Obstáculo\n")
+        def mostrar_mapa(self):
+            """Renderiza el mapa en formato ASCII."""
+            print("\n--- Visualización de la Cuadrícula del Hogar ---")
+            for y in range(self.alto):
+                fila = []
+                for x in range(self.ancho):
+                    if (x, y) == self.posicion:
+                        fila.append("R")
+                    elif (x, y) == self.base:
+                        fila.append("B")
+                    elif (x, y) in self.obstaculos:
+                        fila.append("#")
+                    elif (x, y) in self.areas_limpias:
+                        fila.append(".")
+                    else:
+                        fila.append("S")
+                print("  " + " ".join(fila))
+            print("  Leyenda: B=Base, R=Robot, .=Limpia, S=Sucia, #=Obstáculo\n")
 
+    print("\n Tu tarea: Completa la clase RobotLimpiador y optimiza su comportamiento")
+    return RobotLimpiador
+
+
+# =============================================================================
+# EJECUCIÓN PRINCIPAL
+# =============================================================================
 
 def main():
-    print("=" * 75)
-    print("  TECNM / ITSU - ROBOT LIMPIADOR AUTÓNOMO (BOUSTROPHEDON + A*)")
-    print("=" * 75)
+    RobotLimpiadorClass = proyecto_robot_limpiador()
 
-    robot = RobotLimpiador(filas=7, columnas=7, bateria_inicial=65.0)
-    # Colocar obstáculos interiores (muebles, paredes)
-    obstaculos = [(1, 2), (2, 2), (3, 2), (5, 4), (5, 5)]
-    robot.sembrar_obstaculos(obstaculos)
+    robot = RobotLimpiadorClass(nombre="CleanBot-v2", ancho=7, alto=7)
+    # Batería inicial para forzar ciclo de recarga pedagógico
+    robot.bateria = 45
 
     print("Estado inicial del entorno:")
-    robot.renderizar_mapa()
+    robot.mostrar_mapa()
 
-    robot.ejecutar_ciclo_limpieza()
+    # Ejecutar cobertura y navegación
+    total_limpias = robot.planificar_ruta_limpieza(robot.ancho, robot.alto)
 
-    print("\n" + "=" * 75)
-    print("  CONSIDERACIONES ÉTICAS EN ROBÓTICA AUTÓNOMA Y DE SERVICIO")
     print("=" * 75)
-    print("""
-    1. Seguridad Humana e Integridad Física (Leyes de Asimov / ISO 13482):
-       El robot debe detenerse o ralentizarse ante la detección de mascotas o personas
-       en su camino, priorizando la evasión pasiva sobre la cobertura de tareas.
-    2. Privacidad y Mapeo del Hogar: Las aspiradoras y robots autónomos generan planos
-       espaciales íntimos de los hogares. Estos mapas no deben ser monetizados ni enviados
-       a servidores externos sin cifrado y consentimiento expreso.
-    3. Eficiencia y Sostenibilidad Energética: El algoritmo de retorno A* optimiza
-       la vida útil de las baterías de litio y evita el desgaste prematuro de componentes.
-    """)
+    print("  REPORTE FINAL DE LA MISIÓN DEL ROBOT LIMPIADOR DOMÉSTICO")
+    print("=" * 75)
+    print(f"  * Celdas limpiadas: {total_limpias} de {robot.ancho * robot.alto - len(robot.obstaculos)} transitables (100% cobertura)")
+    print(f"  * Pasos totales realizados: {robot.pasos_totales}")
+    print(f"  * Ciclos de recarga en base: {robot.ciclos_recarga}")
+    print(f"  * Nivel final de batería: {robot.bateria}%")
+
+    print("\nEstado final del entorno:")
+    robot.mostrar_mapa()
+
+    # Consideraciones Éticas
+    print("=" * 75)
+    print("  CONSIDERACIONES ÉTICAS EN ROBÓTICA DOMÉSTICA")
+    print("=" * 75)
+    print("  1. Seguridad Física y Personas Vulnerables: El robot debe detenerse de forma")
+    print("     inmediata ante la presencia de niños, mascotas o ancianos en su campo de visión.")
+    print("  2. Privacidad de Mapas Espaciales: Los planos topográficos del hogar deben")
+    print("     mantenerse cifrados localmente, prohibiendo su telemetría hacia la nube sin permiso.")
+    print("  3. Eficiencia Energética: El algoritmo A* optimiza el retorno reduciendo el")
+    print("     desgaste de los ciclos de carga de la batería de litio.")
+    print("=" * 75)
 
 
 if __name__ == "__main__":
